@@ -4,7 +4,7 @@
 
 当前范围：Java 17 + Spring Boot 3 + MyBatis-Plus + MySQL 8 + Flyway + JWT，以及 Vue 3 + TypeScript + Vite + Element Plus 基础前端。
 
-当前已完成 Stage 1 基础业务系统和 Stage 2 只读 Tool System；仍不包含 LLM、Agent Loop、Tool Calling、RAG、MCP 或多 Agent 能力。详见 [docs/stage1.md](docs/stage1.md) 和 [docs/stage2.md](docs/stage2.md)。
+当前已完成 Stage 1 基础业务系统、Stage 2 只读 Tool System 和 Stage 3 Qwen Tool Calling + Agent Loop。启动 Agent 前需设置进程环境变量 `DASHSCOPE_API_KEY`；模型默认 `qwen-plus`，最多调用 6 次。详见 [docs/stage1.md](docs/stage1.md)、[docs/stage2.md](docs/stage2.md) 和 [docs/stage3.md](docs/stage3.md)。
 
 ## 快速启动
 
