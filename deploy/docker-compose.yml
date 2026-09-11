@@ -1,0 +1,24 @@
+name: ai-ecommerce-ops-agent
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ai-ecommerce-ops-agent-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ecommerce_agent}
+      MYSQL_USER: ${MYSQL_USER:-ecommerce}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-root-me}
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    volumes:
+      - ecommerce_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  ecommerce_mysql_data:

@@ -1,0 +1,11 @@
+:root { font-family: Inter, "PingFang SC", system-ui, sans-serif; color: #172033; background: #f4f7fb; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+.shell { min-height: 100vh; padding: 12vh 8vw; background: radial-gradient(circle at 80% 10%, #dfeaff, transparent 35%), #f4f7fb; }
+.hero { max-width: 760px; }
+.eyebrow { letter-spacing: .14em; color: #5d75a6; font-size: 12px; font-weight: 700; }
+h1 { font-size: clamp(36px, 6vw, 72px); line-height: 1.08; margin: 24px 0 14px; }
+.subtitle { color: #65718a; font-size: 20px; margin-bottom: 32px; }
+.status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; max-width: 980px; margin-top: 70px; }
+.el-card { border: 0; border-radius: 16px; }
+@media (max-width: 700px) { .status-grid { grid-template-columns: 1fr; margin-top: 45px; } }
