@@ -63,9 +63,9 @@ class ToolSystemIntegrationTest {
 
     @Test
     void registryDiscoversAllReadOnlyToolsAndDefinitions() {
-        assertEquals(6, toolRegistry.size());
+        assertEquals(7, toolRegistry.size());
         assertEquals(List.of("get_inventory", "get_product", "get_sales_summary", "list_low_stock_products",
-                "query_orders", "search_products"), toolRegistry.definitions().stream().map(ToolDefinition::name).toList());
+                "query_orders", "search_products", "update_product_price"), toolRegistry.definitions().stream().map(ToolDefinition::name).toList());
         ToolDefinition definition = toolRegistry.find("get_product").orElseThrow().definition();
         assertEquals("根据 SKU 查询当前用户商品", definition.description());
         assertEquals("sku", definition.parameters().get(0).name());
@@ -147,7 +147,7 @@ class ToolSystemIntegrationTest {
         mockMvc.perform(get("/api/tools")).andExpect(status().isUnauthorized());
         String token = login("demo@example.com", "password");
         mockMvc.perform(get("/api/tools").header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data", org.hamcrest.Matchers.hasSize(6)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data", org.hamcrest.Matchers.hasSize(7)));
         mockMvc.perform(post("/api/tools/get_product/execute")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -240,4 +240,3 @@ class ToolSystemIntegrationTest {
         return objectMapper.readTree(response).path("data").path("accessToken").asText();
     }
 }
-

@@ -29,7 +29,8 @@ public interface ConversationMapper {
     int removeFailedUserMessage(long id, long userId, long messageId);
 
     @Delete("DELETE FROM conversations WHERE id=#{id} AND user_id=#{userId} " +
-            "AND NOT EXISTS (SELECT 1 FROM conversation_messages WHERE conversation_id=#{id})")
+            "AND NOT EXISTS (SELECT 1 FROM conversation_messages WHERE conversation_id=#{id}) " +
+            "AND NOT EXISTS (SELECT 1 FROM pending_actions WHERE conversation_id=#{id})")
     int removeEmptyConversation(long id, long userId);
 
     @Select("SELECT id, title, created_at, updated_at FROM conversations WHERE user_id=#{userId} " +

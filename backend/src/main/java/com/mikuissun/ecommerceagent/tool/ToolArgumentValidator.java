@@ -42,6 +42,7 @@ public class ToolArgumentValidator {
         return switch (parameter.type()) {
             case STRING -> normalizeString(parameter, value);
             case INTEGER -> normalizeInteger(parameter, value);
+            case NUMBER -> normalizeNumber(parameter, value);
             case DATE -> normalizeDate(parameter, value);
             case ENUM -> normalizeEnum(parameter, value);
         };
@@ -52,6 +53,20 @@ public class ToolArgumentValidator {
             return ToolValidationResult.invalid("INVALID_PARAMETER", "参数 " + parameter.name() + " 必须是非空字符串");
         }
         return ToolValidationResult.valid(Map.of(parameter.name(), string.trim()));
+    }
+
+    private ToolValidationResult normalizeNumber(ToolParameterSchema parameter, Object value) {
+        try {
+            if (!(value instanceof Number) && !(value instanceof String)) throw new IllegalArgumentException();
+            java.math.BigDecimal number = new java.math.BigDecimal(value.toString());
+            if (parameter.min() != null && number.compareTo(java.math.BigDecimal.valueOf(parameter.min())) < 0
+                    || parameter.max() != null && number.compareTo(java.math.BigDecimal.valueOf(parameter.max())) > 0) {
+                return ToolValidationResult.invalid("PARAMETER_OUT_OF_RANGE", "数值超出允许范围");
+            }
+            return ToolValidationResult.valid(Map.of(parameter.name(), number));
+        } catch (RuntimeException ex) {
+            return ToolValidationResult.invalid("INVALID_PARAMETER", "参数 " + parameter.name() + " 必须是有效数值");
+        }
     }
 
     private ToolValidationResult normalizeInteger(ToolParameterSchema parameter, Object value) {
@@ -95,4 +110,3 @@ public class ToolArgumentValidator {
         return ToolValidationResult.valid(Map.of(parameter.name(), string));
     }
 }
-

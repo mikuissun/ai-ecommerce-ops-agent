@@ -62,7 +62,7 @@ class AgentIntegrationTest {
         assertEquals("你好", result.answer());
         assertTrue(result.toolCalls().isEmpty());
         assertEquals(1, fake.requests.size());
-        assertEquals(6, fake.tools.size());
+        assertEquals(7, fake.tools.size());
         assertEquals(2, fake.requests.get(0).size());
     }
 
@@ -198,7 +198,7 @@ class AgentIntegrationTest {
             assertFalse(function.path("parameters").path("properties").has("userId"));
             assertFalse(function.path("parameters").path("additionalProperties").asBoolean());
         }
-        assertEquals(6, byName.size());
+        assertEquals(7, byName.size());
         assertEquals("sku", byName.get("get_inventory").path("required").get(0).asText());
         var days = byName.get("get_sales_summary").path("properties").path("days");
         assertEquals("integer", days.path("type").asText());

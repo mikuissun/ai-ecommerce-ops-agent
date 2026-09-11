@@ -30,6 +30,9 @@ public class ToolExecutor {
             return ToolResult.failure("UNAUTHORIZED", ex.getMessage());
         }
         ToolValidationResult validation = validator.validate(tool.definition(), rawArguments);
+        if (tool.requiresApproval()) {
+            return ToolResult.failure("APPROVAL_REQUIRED", "写操作必须通过 Pending Action 审批接口");
+        }
         if (!validation.valid()) {
             return validation.error();
         }
@@ -42,4 +45,3 @@ public class ToolExecutor {
         }
     }
 }
-

@@ -49,13 +49,14 @@ public class ConversationService {
         }
         PreparedTurn turn = shortTransaction.execute(status -> prepare(conversationId, userId, message));
         try {
-            var result = agent.chat(turn.history());
+            var result = agent.chat(turn.history(), turn.id());
             shortTransaction.executeWithoutResult(status -> {
                 if (conversations.lockOwned(turn.id(), userId) == null) throw notFound();
                 conversations.append(turn.id(), userId, "ASSISTANT", result.answer());
                 conversations.touch(turn.id(), userId);
             });
-            return new AgentChatResponse(turn.id(), result.answer(), result.toolCalls());
+            return new AgentChatResponse(turn.id(), result.answer(), result.toolCalls(),
+                    result.pendingActionId(), result.requiresApproval());
         } catch (RuntimeException failure) {
             try {
                 shortTransaction.executeWithoutResult(status -> {

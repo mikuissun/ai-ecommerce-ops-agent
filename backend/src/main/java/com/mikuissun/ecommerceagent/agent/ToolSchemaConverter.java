@@ -27,8 +27,11 @@ public class ToolSchemaConverter {
         for (var parameter : definition.parameters()) {
             ObjectNode property = properties.putObject(parameter.name());
             property.put("description", parameter.description());
-            property.put("type", parameter.type() == com.mikuissun.ecommerceagent.tool.ToolParameterType.INTEGER
-                    ? "integer" : "string");
+            property.put("type", switch (parameter.type()) {
+                case INTEGER -> "integer";
+                case NUMBER -> "number";
+                default -> "string";
+            });
             if (parameter.type() == com.mikuissun.ecommerceagent.tool.ToolParameterType.DATE) {
                 property.put("format", "date");
             }
