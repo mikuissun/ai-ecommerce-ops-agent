@@ -10,6 +10,15 @@ import java.util.List;
 
 @Mapper
 public interface OrderItemMapper extends BaseMapper<OrderItemEntity> {
+    @Select("SELECT COALESCE(SUM(oi.quantity), 0) AS units_sold, " +
+            "COALESCE(SUM(oi.subtotal), 0) AS revenue, COUNT(DISTINCT o.id) AS order_count " +
+            "FROM order_items oi JOIN orders o ON o.id = oi.order_id " +
+            "JOIN products p ON p.id = oi.product_id AND p.user_id = o.user_id " +
+            "WHERE o.user_id = #{userId} AND p.id = #{productId} " +
+            "AND o.ordered_at >= #{from} AND o.ordered_at <= #{to} " +
+            "AND o.status IN ('PAID', 'SHIPPED', 'COMPLETED')")
+    ProductSalesRow productSales(long userId, long productId, LocalDateTime from, LocalDateTime to);
+
     @Select("SELECT oi.sku AS sku, p.name AS product_name, SUM(oi.quantity) AS units_sold, " +
             "SUM(oi.subtotal) AS revenue " +
             "FROM order_items oi " +
