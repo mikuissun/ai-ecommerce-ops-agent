@@ -21,13 +21,19 @@ public class OrderService {
     }
 
     public List<OrderResponse> list(long userId, String status, String marketplace, LocalDate startDate, LocalDate endDate) {
+        return list(userId, status, marketplace, startDate, endDate, 1000);
+    }
+
+    public List<OrderResponse> list(long userId, String status, String marketplace, LocalDate startDate, LocalDate endDate, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 1000));
         LambdaQueryWrapper<OrderEntity> query = new LambdaQueryWrapper<OrderEntity>()
                 .eq(OrderEntity::getUserId, userId)
                 .eq(status != null && !status.isBlank(), OrderEntity::getStatus, status)
                 .eq(marketplace != null && !marketplace.isBlank(), OrderEntity::getMarketplace, marketplace)
                 .ge(startDate != null, OrderEntity::getOrderedAt, startDate == null ? null : startDate.atStartOfDay())
                 .lt(endDate != null, OrderEntity::getOrderedAt, endDate == null ? null : endDate.plusDays(1).atStartOfDay())
-                .orderByDesc(OrderEntity::getOrderedAt);
+                .orderByDesc(OrderEntity::getOrderedAt)
+                .last("LIMIT " + safeLimit);
         return orderMapper.selectList(query).stream().map(OrderResponse::from).toList();
     }
 

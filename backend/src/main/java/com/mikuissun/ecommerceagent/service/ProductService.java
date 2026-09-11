@@ -19,6 +19,11 @@ public class ProductService {
     }
 
     public List<ProductResponse> list(long userId, String keyword, String marketplace, String status) {
+        return list(userId, keyword, marketplace, status, 1000);
+    }
+
+    public List<ProductResponse> list(long userId, String keyword, String marketplace, String status, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 1000));
         LambdaQueryWrapper<ProductEntity> query = new LambdaQueryWrapper<ProductEntity>()
                 .eq(ProductEntity::getUserId, userId)
                 .and(keyword != null && !keyword.isBlank(), nested -> nested
@@ -27,8 +32,18 @@ public class ProductService {
                         .like(ProductEntity::getSku, keyword))
                 .eq(marketplace != null && !marketplace.isBlank(), ProductEntity::getMarketplace, marketplace)
                 .eq(status != null && !status.isBlank(), ProductEntity::getStatus, status)
-                .orderByDesc(ProductEntity::getUpdatedAt);
+                .orderByDesc(ProductEntity::getUpdatedAt)
+                .last("LIMIT " + safeLimit);
         return productMapper.selectList(query).stream().map(ProductResponse::from).toList();
+    }
+
+    public ProductResponse getBySku(long userId, String sku) {
+        ProductEntity product = productMapper.selectOne(new LambdaQueryWrapper<ProductEntity>()
+                .eq(ProductEntity::getUserId, userId).eq(ProductEntity::getSku, sku));
+        if (product == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "商品不存在");
+        }
+        return ProductResponse.from(product);
     }
 
     public ProductResponse get(long userId, long id) {

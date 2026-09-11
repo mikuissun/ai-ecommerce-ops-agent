@@ -19,4 +19,7 @@ public interface OrderMapper extends BaseMapper<OrderEntity> {
 
     @Select("SELECT COUNT(*) FROM orders WHERE user_id = #{userId} AND status = #{status}")
     long countByStatus(Long userId, String status);
+
+    @Select("SELECT COUNT(*) FROM orders WHERE user_id = #{userId} AND ordered_at >= #{from} AND status = #{status}")
+    long countByStatusSince(Long userId, LocalDateTime from, String status);
 }
