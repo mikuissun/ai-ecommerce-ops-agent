@@ -33,13 +33,15 @@ class AgentIntegrationTest {
     static class FakeAgentChatModel implements AgentChatModel {
         final Deque<JsonNode> replies = new ArrayDeque<>();
         final List<List<JsonNode>> requests = new ArrayList<>();
+        Runnable beforeChat = () -> {};
         List<JsonNode> tools;
         @Override public JsonNode chat(List<JsonNode> messages, List<JsonNode> tools) {
+            beforeChat.run();
             requests.add(messages.stream().map(node -> (JsonNode) node.deepCopy()).toList());
             this.tools = tools;
             return replies.removeFirst();
         }
-        void reset() { replies.clear(); requests.clear(); tools = null; }
+        void reset() { replies.clear(); requests.clear(); tools = null; beforeChat = () -> {}; }
     }
 
     @Autowired FakeAgentChatModel fake;
@@ -232,7 +234,8 @@ class AgentIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.answer").value("可用库存 5"))
                 .andExpect(jsonPath("$.toolCalls[0].success").value(true))
                 .andReturn().getResponse().getContentAsString();
-        assertEquals(2, json.readTree(body).size());
+        assertEquals(3, json.readTree(body).size());
+        assertTrue(json.readTree(body).path("conversationId").asLong() > 0);
         assertFalse(body.contains(token));
         assertFalse(body.contains("userId"));
         assertFalse(body.contains("system"));

@@ -29,6 +29,7 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 agent:
+  max-history-messages: ${AGENT_MAX_HISTORY_MESSAGES:20}
   model: ${AGENT_MODEL:qwen-plus}
   max-iterations: ${AGENT_MAX_ITERATIONS:6}
 
