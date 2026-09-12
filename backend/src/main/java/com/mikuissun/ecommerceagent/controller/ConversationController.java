@@ -23,4 +23,10 @@ public class ConversationController {
             @RequestParam(defaultValue = "100") int limit, @RequestParam(defaultValue = "0") int offset) {
         return ApiResponse.ok(conversations.messages(id, limit, offset));
     }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable long id) {
+        conversations.delete(id);
+        return ApiResponse.ok(null, "会话已删除");
+    }
 }

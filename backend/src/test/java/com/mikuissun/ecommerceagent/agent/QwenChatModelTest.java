@@ -24,6 +24,7 @@ class QwenChatModelTest {
                 .andExpect(jsonPath("$.messages[0].content").value("库存"))
                 .andExpect(jsonPath("$.tools[0].type").value("function"))
                 .andExpect(jsonPath("$.stream").value(false))
+                .andExpect(jsonPath("$.parallel_tool_calls").value(true))
                 .andRespond(withSuccess("""
                         {"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[
                         {"id":"abc","type":"function","function":{"name":"get_inventory","arguments":"{}"}}]}}]}

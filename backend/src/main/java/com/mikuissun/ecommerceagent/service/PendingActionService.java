@@ -15,6 +15,27 @@ import java.util.Map;
 
 @Service
 public class PendingActionService {
+    public java.util.List<com.mikuissun.ecommerceagent.dto.agent.PendingActionResponse> list(long conversationId, int limit, int offset) {
+        long userId = CurrentUserContext.requireUserId();
+        if (conversations.findOwned(conversationId, userId) == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "会话不存在");
+        }
+        if (limit < 1 || limit > 100 || offset < 0) throw new BusinessException(HttpStatus.BAD_REQUEST, "分页参数无效");
+        return actions.listOwned(conversationId, userId, limit, offset).stream().map(action -> {
+            try {
+                Map<String, Object> stored = json.readValue(action.getArgumentsJson(), new TypeReference<Map<String, Object>>() {});
+                Map<String, Object> safe = new java.util.LinkedHashMap<>();
+                for (String key : java.util.List.of("sku", "newPrice")) {
+                    if (stored.containsKey(key)) safe.put(key, stored.get(key));
+                }
+                return new com.mikuissun.ecommerceagent.dto.agent.PendingActionResponse(
+                        action.getId(), action.getToolName(), safe, action.getStatus());
+            } catch (Exception ex) {
+                throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "无法读取操作参数");
+            }
+        }).toList();
+    }
+
     private final PendingActionMapper actions;
     private final ConversationMapper conversations;
     private final ProductService products;

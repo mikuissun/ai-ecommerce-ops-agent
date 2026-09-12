@@ -5,6 +5,10 @@ import org.apache.ibatis.annotations.*;
 
 @Mapper
 public interface PendingActionMapper {
+    @Select("SELECT * FROM pending_actions WHERE conversation_id=#{conversationId} AND user_id=#{userId} " +
+            "ORDER BY id DESC LIMIT #{limit} OFFSET #{offset}")
+    java.util.List<PendingActionEntity> listOwned(long conversationId, long userId, int limit, int offset);
+
     @Insert("INSERT INTO pending_actions(user_id,conversation_id,tool_name,arguments_json,status) " +
             "VALUES(#{userId},#{conversationId},#{toolName},#{argumentsJson},'PENDING')")
     @Options(useGeneratedKeys = true, keyProperty = "id")

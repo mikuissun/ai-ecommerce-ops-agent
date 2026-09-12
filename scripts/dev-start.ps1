@@ -23,7 +23,7 @@ for ($i = 0; $i -lt 30; $i++) {
     if ($status -eq 'healthy') { break }
     Start-Sleep -Seconds 2
 }
-if ($status -ne 'healthy') { throw 'MySQL 未在预期时间内变为 healthy。' }
+if ($status -ne 'healthy') { throw 'MySQL did not become healthy in time.' }
 
 Push-Location (Join-Path $root 'backend')
 try { mvn spring-boot:run } finally { Pop-Location }

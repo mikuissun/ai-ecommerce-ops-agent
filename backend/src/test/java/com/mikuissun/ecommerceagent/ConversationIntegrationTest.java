@@ -36,6 +36,8 @@ class ConversationIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
     @Autowired javax.sql.DataSource dataSource;
+    @Autowired PendingActionService pendingActions;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     @BeforeEach void setup() { fake.reset(); CurrentUserContext.setUserId(1L); }
     @AfterEach void cleanup() { CurrentUserContext.clear(); }
@@ -215,6 +217,65 @@ class ConversationIntegrationTest {
         conversations.chat(first.conversationId(), "那它的销量？");
         assertEquals(4, checkedCalls.get()); // before and after Tools, both new and existing conversations
         assertEquals(4, conversations.messages(first.conversationId(), 100, 0).size());
+    }
+
+    @Test void deleteApiRequiresJwtAndRemovesOwnConversationAndMessages() throws Exception {
+        reply("删除测试回答");
+        long id = conversations.chat(null, "删除测试").conversationId();
+        CurrentUserContext.clear();
+        mvc.perform(delete("/api/conversations/" + id)).andExpect(status().isUnauthorized());
+        String token = login("demo@example.com", "password");
+        mvc.perform(delete("/api/conversations/" + id).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true));
+        mvc.perform(get("/api/conversations/" + id + "/messages").header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
+        mvc.perform(delete("/api/conversations/" + id).header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM conversation_messages WHERE conversation_id=?", Integer.class, id));
+        assertNull(mapper.findOwned(id, 1L));
+    }
+
+    @Test void deleteCannotTouchOtherUsersConversationOrRelatedData() throws Exception {
+        reply("私有回答");
+        long id = conversations.chat(null, "私有会话").conversationId();
+        var action = pendingActions.create(id, "update_product_price", Map.of("sku", "SKU-A001", "newPrice", 25.99));
+        var other = users.register(new RegisterRequest("delete-" + UUID.randomUUID() + "@example.com", "TestPass123", "Other"));
+        CurrentUserContext.clear();
+        String token = login(other.getEmail(), "TestPass123");
+        mvc.perform(delete("/api/conversations/" + id).header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
+        assertNotNull(mapper.findOwned(id, 1L));
+        assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM conversation_messages WHERE conversation_id=?", Integer.class, id));
+        assertEquals("PENDING", jdbc.queryForObject("SELECT status FROM pending_actions WHERE id=?", String.class, action.getId()));
+        assertEquals(id, jdbc.queryForObject("SELECT conversation_id FROM pending_actions WHERE id=?", Long.class, action.getId()));
+    }
+
+    @Test void deleteRejectsPendingActionsAndPreservesCompletedActionsAndAudits() {
+        reply("带审批的会话");
+        long id = conversations.chat(null, "审批删除测试").conversationId();
+        var pending = pendingActions.create(id, "update_product_price", Map.of("sku", "SKU-A001", "newPrice", 25.99));
+        var executed = pendingActions.create(id, "update_product_price", Map.of("sku", "SKU-A001", "newPrice", 26.99));
+        assertEquals("EXECUTED", pendingActions.approve(executed.getId()).status());
+        var audit = jdbc.queryForMap("SELECT * FROM audit_logs WHERE pending_action_id=?", executed.getId());
+        reply("保留的会话");
+        long kept = conversations.chat(null, "不删除这个会话").conversationId();
+        var keptAction = pendingActions.create(kept, "update_product_price", Map.of("sku", "SKU-A001", "newPrice", 27.99));
+
+        conversations.delete(id);
+
+        assertNull(mapper.findOwned(id, 1L));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM conversation_messages WHERE conversation_id=?", Integer.class, id));
+        for (long actionId : List.of(pending.getId(), executed.getId())) {
+            assertNull(jdbc.queryForObject("SELECT conversation_id FROM pending_actions WHERE id=?", Long.class, actionId));
+        }
+        assertEquals("REJECTED", jdbc.queryForObject("SELECT status FROM pending_actions WHERE id=?", String.class, pending.getId()));
+        assertEquals("EXECUTED", jdbc.queryForObject("SELECT status FROM pending_actions WHERE id=?", String.class, executed.getId()));
+        assertEquals(audit, jdbc.queryForMap("SELECT * FROM audit_logs WHERE pending_action_id=?", executed.getId()));
+        assertEquals(org.springframework.http.HttpStatus.CONFLICT,
+                assertThrows(BusinessException.class, () -> pendingActions.approve(pending.getId())).getStatus());
+        assertEquals(2, conversations.messages(kept, 100, 0).size());
+        assertEquals("PENDING", jdbc.queryForObject("SELECT status FROM pending_actions WHERE id=?", String.class, keptAction.getId()));
+        assertEquals(kept, jdbc.queryForObject("SELECT conversation_id FROM pending_actions WHERE id=?", Long.class, keptAction.getId()));
     }
 
     private void reply(String answer) {

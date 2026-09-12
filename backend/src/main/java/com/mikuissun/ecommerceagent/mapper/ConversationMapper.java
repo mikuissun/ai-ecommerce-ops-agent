@@ -17,6 +17,18 @@ public interface ConversationMapper {
     @Select("SELECT * FROM conversations WHERE id=#{id} AND user_id=#{userId}")
     ConversationEntity findOwned(long id, long userId);
 
+    @Update("UPDATE pending_actions SET conversation_id=NULL, " +
+            "status=CASE WHEN status='PENDING' THEN 'REJECTED' ELSE status END " +
+            "WHERE conversation_id=#{id} AND user_id=#{userId}")
+    int detachActions(long id, long userId);
+
+    @Delete("DELETE FROM conversation_messages WHERE conversation_id=#{id} " +
+            "AND EXISTS (SELECT 1 FROM conversations WHERE id=#{id} AND user_id=#{userId})")
+    int deleteMessagesOwned(long id, long userId);
+
+    @Delete("DELETE FROM conversations WHERE id=#{id} AND user_id=#{userId}")
+    int deleteOwned(long id, long userId);
+
     @Insert("INSERT INTO conversation_messages(conversation_id, role, content) " +
             "SELECT id, #{role}, #{content} FROM conversations WHERE id=#{id} AND user_id=#{userId}")
     int append(long id, long userId, String role, String content);

@@ -115,6 +115,17 @@ public class ConversationService {
         }
     }
 
+    public void delete(long id) {
+        long userId = CurrentUserContext.requireUserId();
+        shortTransaction.executeWithoutResult(status -> {
+            if (conversations.lockOwned(id, userId) == null) throw notFound();
+            // Preserve audit history; deleted conversations must not leave executable proposals.
+            conversations.detachActions(id, userId);
+            conversations.deleteMessagesOwned(id, userId);
+            conversations.deleteOwned(id, userId);
+        });
+    }
+
     private BusinessException notFound() {
         return new BusinessException(HttpStatus.NOT_FOUND, "会话不存在");
     }

@@ -219,6 +219,31 @@ class ApprovalIntegrationTest {
         assertFalse(body.contains("userId"));
     }
 
+    @Test void actionHistoryRestoresPendingAndExecutedWithoutSensitiveFields() throws Exception {
+        var proposal = propose();
+        assertEquals("PENDING", actions.list(proposal.conversationId(), 100, 0).get(0).status());
+        actions.approve(proposal.pendingActionId());
+        String token = login("demo@example.com", "password");
+        mvc.perform(get("/api/pending-actions").param("conversationId", proposal.conversationId().toString())
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("EXECUTED"))
+                .andExpect(jsonPath("$[0].arguments.sku").value(sku))
+                .andExpect(jsonPath("$[0].userId").doesNotExist());
+    }
+
+    @Test void actionHistoryRejectsAnotherUserAndInvalidPagination() throws Exception {
+        var proposal = propose();
+        assertEquals(HttpStatus.BAD_REQUEST, assertThrows(BusinessException.class,
+                () -> actions.list(proposal.conversationId(), 101, 0)).getStatus());
+        assertTrue(actions.list(proposal.conversationId(), 1, 1).isEmpty());
+        var other = users.register(new RegisterRequest("history-" + UUID.randomUUID() + "@example.com", "TestPass123", "Other"));
+        String token = login(other.getEmail(), "TestPass123");
+        mvc.perform(get("/api/pending-actions").param("conversationId", proposal.conversationId().toString())
+                .header("Authorization", "Bearer " + token)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/pending-actions").param("conversationId", proposal.conversationId().toString()))
+                .andExpect(status().isUnauthorized());
+    }
+
     private AgentChatResponse propose() {
         queueCalls(writeCall("price", "25.99"));
         return conversations.chat(null, "把 " + sku + " 的价格改成 25.99");

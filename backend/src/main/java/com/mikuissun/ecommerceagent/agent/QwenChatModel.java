@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 
 @Component
 public class QwenChatModel implements AgentChatModel {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(QwenChatModel.class);
     private final RestClient http;
     private final String model;
     private final Supplier<String> apiKey;
@@ -52,7 +53,8 @@ public class QwenChatModel implements AgentChatModel {
                     .headers(headers -> headers.setBearerAuth(key))
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of("model", model, "messages", messages, "tools", tools,
-                            "tool_choice", "auto", "stream", false, "enable_thinking", false))
+                            "tool_choice", "auto", "stream", false, "enable_thinking", false,
+                            "parallel_tool_calls", true))
                     .retrieve().body(JsonNode.class);
             JsonNode message = response == null ? null : response.path("choices").path(0).path("message");
             if (message == null || !message.isObject() || !"assistant".equals(message.path("role").asText())) {
@@ -60,6 +62,10 @@ public class QwenChatModel implements AgentChatModel {
             }
             return message;
         } catch (Exception ex) {
+            log.warn("Qwen request failed: type={}, status={}, causeType={}", ex.getClass().getSimpleName(),
+                    ex instanceof org.springframework.web.client.RestClientResponseException responseError
+                            ? responseError.getStatusCode().value() : "transport",
+                    ex.getCause() == null ? "none" : ex.getCause().getClass().getSimpleName());
             // Never expose provider body, request headers, credentials or stack traces.
             throw new BusinessException(HttpStatus.BAD_GATEWAY, "模型服务暂时不可用，请稍后重试");
         }
